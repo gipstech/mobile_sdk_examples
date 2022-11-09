@@ -1,4 +1,4 @@
-package com.gipstech.indoorlocationexample;
+package com.gipstech.universallocationexample;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,18 +13,18 @@ import com.gipstech.*;
 
 public class MainActivity extends AppCompatActivity {
     final static String DEV_KEY = ""; // PUT YOUR DEV KEY HERE
-    final static String BUILDING_ID = ""; // PUT THE ID OF THE BUILDING HERE
 
     TextView textView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         textView = findViewById(R.id.mainTextView);
         textView.setMovementMethod(new ScrollingMovementMethod());
 
-        String[] permissions = new String[]{
+        String[] permissions = new String[] {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.BLUETOOTH
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        
+
         if (!allGranted(grantResults)) {
             textView.append("Please grant all permissions to start location");
             return;
@@ -53,26 +53,12 @@ public class MainActivity extends AppCompatActivity {
         startLocation();
     }
 
-    boolean allGranted(int[] grantResults) {
-        if (grantResults.length == 0) {
-            return false;
-        }
-
-        for (int val : grantResults) {
-            if (val != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     void performFastCalibration() {
         GiPStech.getCalibrationManager().beginCalibration(CalibrationManager.CALIBRATION_TYPE_FAST, new ProgressCallback<Void>() {
             @Override
             public void onResult(Void result) {
                 textView.append("Calibration completed\n");
-                GiPStech.getIndoorLocalizer().registerListener(listener);
+                GiPStech.getUniversalLocalizer().registerListener(listener);
             }
 
             @Override
@@ -90,46 +76,44 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void startLocation() {
-        GiPStech.getIndoorLocalizer().selectBuilding(BUILDING_ID, new ProgressCallback<Void>() {
-            @Override
-            public void onResult(Void result) {
-                textView.append("Selection completed\n");
-                GiPStech.getIndoorLocalizer().registerListener(listener);
-            }
+    boolean allGranted(int[] grantResults) {
+        if (grantResults.length == 0) {
+            return false;
+        }
 
-            @Override
-            public void onProgress(int progress) {
-                textView.append("Selection progress: " + progress + "%\n");
+        for (int val : grantResults) {
+            if (val != PackageManager.PERMISSION_GRANTED) {
+                return false;
             }
+        }
 
-            @Override
-            public void onError(GiPStechError error) {
-                textView.append(error.getMessage() + "\n");
-            }
-        });
+        return true;
     }
 
-    IndoorLocalizer.Listener listener = new IndoorLocalizer.Listener() {
-        @Override
-        public void onRegistrationUpdate(int percentage) {
-            textView.append("Registration progress: " + percentage + "%\n");
-        }
+    void startLocation() {
+        GiPStech.getUniversalLocalizer().registerListener(listener);
+    }
 
+    UniversalLocalizer.Listener listener = new UniversalLocalizer.Listener() {
         @Override
-        public void onRegistrationComplete() {
-            textView.append("Registration completed\n");
-        }
-
-        @Override
-        public void onLocationUpdate(IndoorLocation location) {
+        public void onLocationUpdate(UniversalLocation location) {
             textView.append("Location: " + location.getLongitude() + " " + location.getLatitude() + "\n");
+            if (location.getFloor() != null && location.getBuilding() != null) {
+                textView.append("You are at the floor level " + location.getFloor().getLevel() + " of the <" + location.getBuilding().getName() + "> building\n");
+            }
         }
 
         @Override
-        public boolean onFloorChange(Floor floor) {
-            textView.append("Floor: " + floor.getName() + "\n");
-            return true;
+        public void onTransition(Building building, Floor floor) {
+            if (building != null) {
+                if (floor != null) {
+                    textView.append("Going at " + floor.getName() + "\n");
+                } else {
+                    textView.append("Going inside " + building.getName() + "\n");
+                }
+            } else {
+                textView.append("Going outdoor\n");
+            }
         }
 
         @Override
