@@ -1,0 +1,1 @@
+Unzip the files GiPStechSDK.framework.zip and GiPStechSwiftSDK.framework.zip here
